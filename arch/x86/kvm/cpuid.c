@@ -24,6 +24,11 @@
 #include "trace.h"
 #include "pmu.h"
 
+u64 exit_counts = 0;
+u64 exit_delta = 0;
+EXPORT_SYMBOL(exit_counts);
+EXPORT_SYMBOL(exit_delta);
+
 /*
  * Unlike "struct cpuinfo_x86.x86_capability", kvm_cpu_caps doesn't need to be
  * aligned to sizeof(unsigned long) because it's not accessed via bitops.
@@ -1139,6 +1144,18 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 	eax = kvm_rax_read(vcpu);
 	ecx = kvm_rcx_read(vcpu);
 	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, false);
+        printk("Entered kvm_emulate_cpuid, EAX = 0x%x\n", eax);
+        /* cmpe-283 assignment 2*/
+        if (eax == 0x4fffffff) {
+	    kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+            eax = exit_counts;
+            ecx = exit_delta & 0xffffffff;
+            ebx = (exit_delta >> 32) & 0xffffffff;
+        } else {
+	    kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+            printk(KERN_INFO "EAX == 0x%x after kvm_cpuid()\n", eax);
+        }
+
 	kvm_rax_write(vcpu, eax);
 	kvm_rbx_write(vcpu, ebx);
 	kvm_rcx_write(vcpu, ecx);
